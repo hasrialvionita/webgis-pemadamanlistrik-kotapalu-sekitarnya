@@ -29,9 +29,9 @@ const palette={today:cvar('--today')||'#C2410C',tomorrow:cvar('--tomorrow')||'#1
 const map=L.map('map',{preferCanvas:true,zoomControl:true,attributionControl:false}).setView([-0.89,119.87],12);
 const cv=L.canvas({padding:0.3});
 const pk={};
-L.geoJSON(DESA,{renderer:cv,style:{color:cvar('--polyb')||'#A89B82',weight:.9,fillColor:cvar('--poly')||'#F3EEE2',fillOpacity:.72},onEachFeature:(f,l)=>{pk[f.properties.n+'|'+f.properties.c]=l;l.bindTooltip(E(f.properties.n)+' ('+E(f.properties.c)+', '+E(f.properties.k)+')',{sticky:true})}}).addTo(map);
-const rd=cvar('--road')||'#6F6553';
-JALAN.forEach(j=>L.polyline(j[1].map(p=>[p[1],p[0]]),{renderer:cv,color:rd,weight:1.4,opacity:.9}).bindTooltip(E(j[0]),{sticky:true}).addTo(map));
+L.geoJSON(DESA,{renderer:cv,style:{color:cvar('--polyb')||'#D9D9D9',weight:.9,fillColor:cvar('--poly')||'#FFFFFF',fillOpacity:1},onEachFeature:(f,l)=>{pk[f.properties.n+'|'+f.properties.c]=l;l.bindTooltip(E(f.properties.n)+' ('+E(f.properties.c)+', '+E(f.properties.k)+')',{sticky:true})}}).addTo(map);
+const rd=cvar('--road')||'#E5E5E5';
+JALAN.forEach(j=>L.polyline(j[1].map(p=>[p[1],p[0]]),{renderer:cv,color:rd,weight:.8,opacity:.8}).bindTooltip(E(j[0]),{sticky:true}).addTo(map));
 const lay=L.layerGroup().addTo(map);let hl=[];
 const dates=[...new Set(R.map(r=>r[0]))].sort();
 const dayMs=86400000;
@@ -50,24 +50,16 @@ function opts(){const d=$('d').value;const sl=[...new Set(R.filter(r=>r[0]===d).
 const ulOk=r=>{const on=[...document.querySelectorAll('[data-u]')].filter(x=>x.checked).map(x=>x.dataset.u);const lab=r[2]>=0?T.ulfull[r[2]]:'';return on.some(u=>lab.includes(u))};
 const cOk=r=>{const k=conf(r);return k==='x'||document.querySelector('[data-c="'+k+'"]').checked};
 function pop(r){const k=conf(r);return '<b>'+E(r[3])+'</b><br>Di peta: '+E(r[6]||'-')+'<br>'+E(r[0])+' pukul '+E(r[1])+' WITA<br>'+E(T.ulfull[r[2]])+'<br>Kepercayaan: '+(LAB[k]||'belum terpetakan')+(r[9]==='sebagian'?' (cakupan sebagian)':'')}
-function markerStyle(r,k){
- const c=dateColor(r[0]);
- const s={renderer:cv,radius:6,color:c,weight:1.6,fillColor:c,fillOpacity:.95};
- if(k==='m'){s.fillColor=cvar('--panel')||'#FCF9F2';s.fillOpacity=1;s.weight=2.2}
- else if(k==='t'){s.fillColor=c;s.fillOpacity=.12;s.weight=2.2;s.dashArray='3 3'}
- return s;
-}
 function render(){
- lay.clearLayers();hl.forEach(l=>l.setStyle({fillColor:cvar('--poly'),fillOpacity:.72}));hl=[];
+ lay.clearLayers();hl.forEach(l=>l.setStyle({fillColor:cvar('--poly'),fillOpacity:1}));hl=[];
  const d=$('d').value,s=$('s').value;
  const rows=R.filter(r=>r[0]===d&&(!s||r[1]===s)&&ulOk(r)&&cOk(r));
- const un=[],seen=new Set();let n=0;const ll=[];
+ const un=[],seen=new Set();let n=0;
  rows.forEach(r=>{const k=conf(r);if(k==='x'){if(!seen.has(r[3])){seen.add(r[3]);un.push(r[3])}return}
-  n++;const m=L.circleMarker([r[7],r[8]],markerStyle(r,k)).bindPopup(pop(r)).addTo(lay);ll.push([r[7],r[8]]);
+  n++;
   if(r[10]&&pk[r[10]]){pk[r[10]].setStyle({fillColor:dateColor(r[0]),fillOpacity:.3});hl.push(pk[r[10]])}});
  $('cnt').innerHTML='<b>'+n+'</b> lokasi terpetakan, <b>'+un.length+'</b> nama belum terpetakan';
  $('unh').textContent='Belum terpetakan ('+un.length+')';$('un').innerHTML=un.map(x=>'<li>'+E(x)+'</li>').join('');
- if(ll.length&&!window.__fit){map.fitBounds(L.latLngBounds(ll).pad(.1));window.__fit=1}
  search()}
 function search(){
  const q=norm($('q').value);const ul=$('res'),st=$('st');ul.innerHTML='';
