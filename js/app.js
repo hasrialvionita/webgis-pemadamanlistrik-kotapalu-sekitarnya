@@ -25,22 +25,45 @@ const E=(x)=>x==null?'':String(x).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;',
 const norm=s=>(s||'').toLowerCase().replace(/\b(jalan|jl|jln|desa|kel|kelurahan|kec|kecamatan|btn|perum)\b\.?/g,' ').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
 function conf(r){const s=ST[r[5]];if(r[7]==null)return 'x';if(s==='Cocok tepat')return r[9]==='sebagian'?'m':'p';if(s==='Cocok fuzzy')return 'm';return 't'}
 const LAB={p:'pasti',m:'kemungkinan',t:'tidak pasti'};
-const palette={today:cvar('--today')||'#C2410C',tomorrow:cvar('--tomorrow')||'#1F4E4A',other:cvar('--other')||'#A99F8E'};
 const map=L.map('map',{preferCanvas:true,zoomControl:true,attributionControl:false}).setView([-0.89,119.87],12);
 const cv=L.canvas({padding:0.3});
+const polyFill=cvar('--poly')||'#FFFFFF';
 const pk={};
-L.geoJSON(DESA,{renderer:cv,style:{color:cvar('--polyb')||'#D9D9D9',weight:.9,fillColor:cvar('--poly')||'#FFFFFF',fillOpacity:1},onEachFeature:(f,l)=>{pk[f.properties.n+'|'+f.properties.c]=l;l.bindTooltip(E(f.properties.n)+' ('+E(f.properties.c)+', '+E(f.properties.k)+')',{sticky:true})}}).addTo(map);
-const rd=cvar('--road')||'#E5E5E5';
-JALAN.forEach(j=>L.polyline(j[1].map(p=>[p[1],p[0]]),{renderer:cv,color:rd,weight:.8,opacity:.8}).bindTooltip(E(j[0]),{sticky:true}).addTo(map));
-const lay=L.layerGroup().addTo(map);let hl=[];
+L.geoJSON(DESA,{renderer:cv,style:{color:cvar('--polyb')||'#D9D9D9',weight:.9,fillColor:polyFill,fillOpacity:1},onEachFeature:(f,l)=>{pk[f.properties.n+'|'+f.properties.c]=l;l.bindTooltip(E(f.properties.n)+' ('+E(f.properties.c)+', '+E(f.properties.k)+')',{sticky:true})}}).addTo(map);
+
+const roadOff=cvar('--road')||'#DEDBD2';
+const roadOn=cvar('--road-on')||'#141414';
+const kelFill=cvar('--kel')||'#5A5A5A';
+const ROAD_W=.7,ROAD_W_ON=3.6,ROAD_OP=.9,HIT_W=18;
+const roadByName=Object.create(null);
+JALAN.forEach(j=>{
+  const name=j[0],key=norm(name),pts=j[1].map(p=>[p[1],p[0]]);
+  let rec=roadByName[key];
+  if(!rec){rec=roadByName[key]={name:name,key:key,layers:[],rows:[]}}
+  rec.layers.push(L.polyline(pts,{renderer:cv,color:roadOff,weight:ROAD_W,opacity:ROAD_OP,interactive:false}).addTo(map));
+  const hit=L.polyline(pts,{renderer:cv,color:'#000000',weight:HIT_W,opacity:.01,interactive:true}).addTo(map);
+  hit.bindTooltip(E(name),{sticky:true});
+  hit.bindPopup(()=>roadPopup(key),{maxWidth:320});
+});
+R.forEach(r=>{if(!r[6])return;const rec=roadByName[norm(r[6])];if(rec)rec.rows.push(r)});
+
+function roadPopup(key){
+  const rec=roadByName[key];
+  if(!rec)return '';
+  const d=$('d').value,s=$('s').value;
+  const cur=rec.rows.filter(r=>r[0]===d&&(!s||r[1]===s)&&ulOk(r)&&cOk(r));
+  const base=cur.length?cur:rec.rows;
+  const times=[...new Set(cur.map(r=>r[1]))].sort();
+  const ulps=[...new Set(base.map(r=>T.ulfull[r[2]]).filter(Boolean))];
+  const confs=[...new Set(base.map(r=>LAB[conf(r)]).filter(Boolean))];
+  const status=cur.length
+    ?'Tercantum pemadaman pada '+E(d)+(times.length?', '+E(times.join(', ')):'')+' WITA'
+    :'Tidak tercantum pada tanggal ini';
+  return '<b>'+E(rec.name)+'</b><br>'+status+'<br>ULP: '+E(ulps.join(', ')||'—')+'<br>Kepercayaan: '+E(confs.join(', ')||'—');
+}
+
+let hlPoly=[],hlRoads=[];
 const dates=[...new Set(R.map(r=>r[0]))].sort();
-const dayMs=86400000;
-const toDay=d=>{const p=d.split('-').map(Number);return Date.UTC(p[0],p[1]-1,p[2])/dayMs};
-const now=new Date();
-const todayDay=Date.UTC(now.getFullYear(),now.getMonth(),now.getDate())/dayMs;
-const minDay=toDay(dates[0]),maxDay=toDay(dates[dates.length-1]);
-const refDay=todayDay<minDay?minDay:todayDay>maxDay?maxDay:todayDay;
-const dateColor=d=>{const n=toDay(d)-refDay;return n===0?palette.today:n===1?palette.tomorrow:palette.other};
 document.getElementById('lastUpdate').textContent=new Date(dates[dates.length-1]+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
 const $=id=>document.getElementById(id);
 $('d').innerHTML=dates.map(d=>'<option>'+d+'</option>').join('');$('d').value=dates[dates.length-1];
@@ -51,13 +74,18 @@ const ulOk=r=>{const on=[...document.querySelectorAll('[data-u]')].filter(x=>x.c
 const cOk=r=>{const k=conf(r);return k==='x'||document.querySelector('[data-c="'+k+'"]').checked};
 function pop(r){const k=conf(r);return '<b>'+E(r[3])+'</b><br>Di peta: '+E(r[6]||'-')+'<br>'+E(r[0])+' pukul '+E(r[1])+' WITA<br>'+E(T.ulfull[r[2]])+'<br>Kepercayaan: '+(LAB[k]||'belum terpetakan')+(r[9]==='sebagian'?' (cakupan sebagian)':'')}
 function render(){
- lay.clearLayers();hl.forEach(l=>l.setStyle({fillColor:cvar('--poly'),fillOpacity:1}));hl=[];
+ hlPoly.forEach(l=>l.setStyle({fillColor:polyFill,fillOpacity:1}));hlPoly=[];
+ hlRoads.forEach(l=>l.setStyle({color:roadOff,weight:ROAD_W,opacity:ROAD_OP}));hlRoads=[];
  const d=$('d').value,s=$('s').value;
  const rows=R.filter(r=>r[0]===d&&(!s||r[1]===s)&&ulOk(r)&&cOk(r));
- const un=[],seen=new Set();let n=0;
+ const un=[],seen=new Set(),roadHit=new Set(),kelHit=new Set();let n=0;
  rows.forEach(r=>{const k=conf(r);if(k==='x'){if(!seen.has(r[3])){seen.add(r[3]);un.push(r[3])}return}
   n++;
-  if(r[10]&&pk[r[10]]){pk[r[10]].setStyle({fillColor:dateColor(r[0]),fillOpacity:.3});hl.push(pk[r[10]])}});
+  const rk=r[6]?norm(r[6]):'',rec=rk?roadByName[rk]:null;
+  if(rec){roadHit.add(rk)}
+  else if(r[10]&&pk[r[10]]){kelHit.add(r[10])}});
+ roadHit.forEach(rk=>{roadByName[rk].layers.forEach(l=>{l.setStyle({color:roadOn,weight:ROAD_W_ON,opacity:1});hlRoads.push(l)})});
+ kelHit.forEach(k=>{const l=pk[k];l.setStyle({fillColor:kelFill,fillOpacity:.38});hlPoly.push(l)});
  $('cnt').innerHTML='<b>'+n+'</b> lokasi terpetakan, <b>'+un.length+'</b> nama belum terpetakan';
  $('unh').textContent='Belum terpetakan ('+un.length+')';$('un').innerHTML=un.map(x=>'<li>'+E(x)+'</li>').join('');
  search()}
