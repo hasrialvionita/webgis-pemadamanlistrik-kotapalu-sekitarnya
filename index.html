@@ -47,10 +47,6 @@
         <legend>ULP</legend>
         <div class="chk" id="u"></div>
       </fieldset>
-      <fieldset class="group">
-        <legend>Tingkat kepercayaan lokasi</legend>
-        <div class="chk" id="c"></div>
-      </fieldset>
 
       <div id="cnt" class="count"></div>
 
@@ -72,20 +68,21 @@
         <span class="legend-chevron" aria-hidden="true"></span>
       </button>
       <div class="legend-body" id="legendBody">
-        <div class="legend-group">
-          <h2>Jalan</h2>
-          <ul class="legend-list">
-            <li><i class="line line-on"></i>Tercantum pemadaman</li>
-            <li><i class="line line-off"></i>Tidak tercantum</li>
-          </ul>
-        </div>
-        <div class="legend-group">
-          <h2>Wilayah</h2>
-          <ul class="legend-list">
-            <li><i class="area area-kel"></i>Tercantum di tingkat kelurahan</li>
-          </ul>
-        </div>
-        <p class="legend-note">Pengumuman PLN menyebut nama jalan atau wilayah, bukan ruas pasti.</p>
+        <ul class="legend-list">
+          <li>
+            <i class="dot dot-p" aria-hidden="true"></i>
+            <span class="legend-text"><b>pasti</b><span>Nama cocok tepat dengan lokasi.</span></span>
+          </li>
+          <li>
+            <i class="dot dot-m" aria-hidden="true"></i>
+            <span class="legend-text"><b>kemungkinan</b><span>Cocok sebagian atau ejaan nama mirip.</span></span>
+          </li>
+          <li>
+            <i class="dot dot-t" aria-hidden="true"></i>
+            <span class="legend-text"><b>tidak pasti</b><span>Kandidat yang perlu dicek manual atau hasil ambigu.</span></span>
+          </li>
+        </ul>
+        <p class="legend-note">Warna titik menunjukkan tingkat kepercayaan lokasi pada peta.</p>
       </div>
     </section>
 
