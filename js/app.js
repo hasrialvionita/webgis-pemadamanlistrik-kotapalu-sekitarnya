@@ -7,12 +7,13 @@ const T={"st":["Cocok tepat","Cocok fuzzy","Kandidat (cek manual)","Ambigu","Tid
     if (!res.ok) throw new Error(url + ': HTTP ' + res.status);
     return res.json();
   };
-  let R, DESA, JALAN;
+  let R, DESA, JALAN, KAB;
   try {
-    [R, DESA, JALAN] = await Promise.all([
+    [R, DESA, JALAN, KAB] = await Promise.all([
       load('data/pemadaman.json'),
       load('data/desa.json'),
       load('data/jalan.json'),
+      load('kabupaten.geojson'),
     ]);
   } catch (err) {
     console.error('Gagal memuat data:', err);
@@ -33,6 +34,12 @@ const pk={};
 L.geoJSON(DESA,{renderer:cv,style:{color:cvar('--polyb')||'#b9c2cf',weight:.7,fillColor:cvar('--poly')||'#fff',fillOpacity:.9},onEachFeature:(f,l)=>{pk[f.properties.n+'|'+f.properties.c]=l;l.bindTooltip(E(f.properties.n)+' ('+E(f.properties.c)+', '+E(f.properties.k)+')',{sticky:true})}}).addTo(map);
 const rd=cvar('--road')||'#9aa6b6';
 JALAN.forEach(j=>L.polyline(j[1].map(p=>[p[1],p[0]]),{renderer:cv,color:rd,weight:1.2,opacity:.8}).bindTooltip(E(j[0]),{sticky:true}).addTo(map));
+const KABCOL={'Donggala':'--kab-donggala','Kota Palu':'--kab-palu','Sigi':'--kab-sigi'};
+const KABPAL=['--kab-donggala','--kab-palu','--kab-sigi'];
+KAB.features.forEach((f,i)=>{
+  const vn=KABCOL[f.properties.WADMKK]||KABPAL[i%KABPAL.length];
+  L.geoJSON(f,{renderer:cv,interactive:false,style:{color:cvar(vn)||'#7d8a3c',weight:1.8,opacity:.85,fill:false,lineJoin:'round',lineCap:'round'}}).addTo(map);
+});
 const lay=L.layerGroup().addTo(map);let hl=[];let pts=[];
 const dates=[...new Set(R.map(r=>r[0]))].sort();
 document.getElementById('lastUpdate').textContent=new Date(dates[dates.length-1]+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'});
@@ -83,6 +90,24 @@ if(legendList){
  const li=document.createElement('li');
  li.innerHTML='<i class="swatch" aria-hidden="true"></i><span class="legend-text"><span>Kelurahan yang memuat lokasi tercantum (bukan batas pemadaman)</span></span>';
  legendList.appendChild(li);
+}
+const legendWilayah=document.getElementById('legendWilayah');
+if(legendWilayah&&KAB&&KAB.features){
+ KAB.features.forEach((f,i)=>{
+  const vn=KABCOL[f.properties.WADMKK]||KABPAL[i%KABPAL.length];
+  const li=document.createElement('li');
+  const icon=document.createElement('i');
+  icon.className='line';
+  icon.setAttribute('aria-hidden','true');
+  icon.style.borderTopColor='var('+vn+')';
+  const text=document.createElement('span');
+  text.className='legend-text';
+  const name=document.createElement('b');
+  name.textContent=f.properties.WADMKK;
+  text.appendChild(name);
+  li.appendChild(icon);li.appendChild(text);
+  legendWilayah.appendChild(li);
+ });
 }
 if(window.matchMedia('(max-width:800px)').matches)setLegend(true);
 opts();render();

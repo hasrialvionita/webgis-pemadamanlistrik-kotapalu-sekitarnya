@@ -17,6 +17,9 @@
   --conf-m:#ff9f1c;
   --conf-t:#9b59b6;
   --point-stroke:#ffffff;
+  --kab-donggala:#3a8a60;
+  --kab-palu:#a4525c;
+  --kab-sigi:#7d8a3c;
   --warn-bg:#fff4d6;
   --warn-bd:#f0e0a8;
   --warn-tx:#5a4300;
@@ -42,6 +45,9 @@
     --poly-hl:#9aa9bd;
     --road:#4b586a;
     --point-stroke:#0e1218;
+    --kab-donggala:#77c99d;
+    --kab-palu:#d98d96;
+    --kab-sigi:#b9c46f;
     --warn-bg:#3a3014;
     --warn-bd:#5a4a1a;
     --warn-tx:#f3d98a;
@@ -63,6 +69,9 @@
   --poly-hl:#9aa9bd;
   --road:#4b586a;
   --point-stroke:#0e1218;
+  --kab-donggala:#77c99d;
+  --kab-palu:#d98d96;
+  --kab-sigi:#b9c46f;
   --warn-bg:#3a3014;
   --warn-bd:#5a4a1a;
   --warn-tx:#f3d98a;
@@ -360,6 +369,27 @@ summary:focus-visible{outline:2px solid var(--ac);outline-offset:3px}
   color:var(--muted);
   font-size:10.5px;
   line-height:1.4;
+}
+.legend-section{
+  padding-top:9px;
+  border-top:1px solid var(--bd);
+}
+.legend-title{
+  margin:0 0 7px;
+  font-family:var(--sans);
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.line{
+  flex:0 0 auto;
+  width:18px;
+  height:0;
+  margin-top:7px;
+  border-top:2px solid var(--kab-line,var(--muted));
+  display:inline-block;
 }
 
 .attrib{
