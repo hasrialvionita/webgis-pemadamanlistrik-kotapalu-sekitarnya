@@ -27,6 +27,16 @@ const norm=s=>(s||'').toLowerCase().replace(/\b(jalan|jl|jln|desa|kel|kelurahan|
 function conf(r){const s=ST[r[5]];if(r[7]==null)return 'x';if(s==='Cocok tepat')return r[9]==='sebagian'?'m':'p';if(s==='Cocok fuzzy')return 'm';return 't'}
 const COL={p:'#1f77b4',m:'#ff9f1c',t:'#9b59b6'},LAB={p:'pasti',m:'kemungkinan',t:'tidak pasti'};
 const PRIO={p:0,m:1,t:2};
+const PALU=L.latLng(-0.89,119.87);
+function pctBounds(points){
+  if(!points.length)return null;
+  const lngs=points.map(p=>p[1]).sort((a,b)=>a-b);
+  const lats=points.map(p=>p[0]).sort((a,b)=>a-b);
+  const q=(arr,p)=>{const i=(arr.length-1)*p,lo=Math.floor(i),hi=Math.ceil(i);return arr[lo]+(arr[hi]-arr[lo])*(i-lo)};
+  const loLng=q(lngs,.05),hiLng=q(lngs,.95),loLat=q(lats,.05),hiLat=q(lats,.95);
+  const inside=points.filter(([lat,lng])=>lat>=loLat&&lat<=hiLat&&lng>=loLng&&lng<=hiLng);
+  return L.latLngBounds(inside.length>=3?inside:points);
+}
 const rForZoom=z=>Math.max(3,Math.min(7,3+(z-11)));
 const map=L.map('map',{preferCanvas:true,zoomControl:true,attributionControl:false}).setView([-0.89,119.87],12);
 const cv=L.canvas({padding:0.3});
@@ -38,7 +48,7 @@ const KABCOL={'Donggala':'--kab-donggala','Kota Palu':'--kab-palu','Sigi':'--kab
 const KABPAL=['--kab-donggala','--kab-palu','--kab-sigi'];
 KAB.features.forEach((f,i)=>{
   const vn=KABCOL[f.properties.WADMKK]||KABPAL[i%KABPAL.length];
-  L.geoJSON(f,{renderer:cv,interactive:false,style:{color:cvar(vn)||'#7d8a3c',weight:1.8,opacity:.85,fill:false,lineJoin:'round',lineCap:'round'}}).addTo(map);
+  L.geoJSON(f,{renderer:cv,interactive:false,style:{color:cvar(vn)||'#a6a6a6',weight:2,opacity:.85,fill:false,dashArray:'6 4',lineJoin:'round',lineCap:'round'}}).addTo(map);
 });
 const lay=L.layerGroup().addTo(map);let hl=[];let pts=[];
 const dates=[...new Set(R.map(r=>r[0]))].sort();
@@ -63,7 +73,19 @@ function render(){
   if(r[10]&&pk[r[10]]&&!hlSeen.has(pk[r[10]])){hlSeen.add(pk[r[10]]);pk[r[10]].setStyle({fillColor:cvar('--poly-hl')||'#5f6f85',fillOpacity:.18});hl.push(pk[r[10]])}});
  $('cnt').innerHTML='<b>'+n+'</b> lokasi terpetakan, <b>'+un.length+'</b> nama belum terpetakan';
  $('unh').textContent='Belum terpetakan ('+un.length+')';$('un').innerHTML=un.map(x=>'<li>'+E(x)+'</li>').join('');
- if(ll.length&&!window.__fit){map.fitBounds(L.latLngBounds(ll).pad(.12),{maxZoom:15});window.__fit=1}
+ if(ll.length&&!window.__fit){
+  const b=pctBounds(ll);
+  if(b){
+   if(window.matchMedia('(max-width:800px)').matches){
+    const s=Math.max(PALU.lat-b.getSouth(),b.getNorth()-PALU.lat,0);
+    const w=Math.max(PALU.lng-b.getWest(),b.getEast()-PALU.lng,0);
+    map.fitBounds(L.latLngBounds([PALU.lat-s,PALU.lng-w],[PALU.lat+s,PALU.lng+w]).pad(.08),{maxZoom:15});
+   }else{
+    map.fitBounds(b.pad(.08),{maxZoom:15});
+   }
+   window.__fit=1;
+  }
+ }
  search()}
 function search(){
  const q=norm($('q').value);const ul=$('res'),st=$('st');ul.innerHTML='';
@@ -99,7 +121,7 @@ if(legendWilayah&&KAB&&KAB.features){
   const icon=document.createElement('i');
   icon.className='line';
   icon.setAttribute('aria-hidden','true');
-  icon.style.borderTopColor='var('+vn+')';
+  icon.style.setProperty('--kab-line','var('+vn+')');
   const text=document.createElement('span');
   text.className='legend-text';
   const name=document.createElement('b');
